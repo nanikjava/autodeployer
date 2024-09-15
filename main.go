@@ -11,18 +11,26 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func getEnvVar(key string) string {
+    value := os.Getenv(key)
+    if value == "" {
+        log.Fatalf("Error: Environment variable %s not set", key)
+    }
+    return value
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+        log.Println("Error loading .env file, continuing with system environment variables")
 	}
 
-	URL := os.Getenv("SEELF_URL")
-	TOKEN := os.Getenv("SEELF_TOKEN")
-	APP_ID := os.Getenv("SEELF_APP_ID")
-	ENVIRONMENT := os.Getenv("APP_ENVIRONMENT")
-	BRANCH := os.Getenv("APP_BRANCH")
-	ABLY := os.Getenv("ABLY_TOKEN")
+	URL := getEnvVar("SEELF_URL")
+	TOKEN :=getEnvVar("SEELF_TOKEN")
+	APP_ID := getEnvVar("SEELF_APP_ID")
+	ENVIRONMENT := getEnvVar("APP_ENVIRONMENT")
+	BRANCH := getEnvVar("APP_BRANCH")
+	ABLY := getEnvVar("ABLY_TOKEN")
 
 	// Connect to Ably with your API key
 	client, err := ably.NewRealtime(ably.WithKey(ABLY), ably.WithAutoConnect(false))
