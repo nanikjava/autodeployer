@@ -2,8 +2,12 @@ package main
 
 import (
 	"ablyprojects/deployment"
-	"context"
+	"ablyprojects/pkg"
+	"ablyprojects/pkg/client"
 	"fmt"
+
+	"context"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -20,6 +24,9 @@ func getEnvVar(key string) string {
 }
 
 func main() {
+	d := loadConfigs()
+	fmt.Println(d)
+
 	err := godotenv.Load()
 	if err != nil {
         log.Println("Error loading .env file, continuing with system environment variables")
@@ -27,45 +34,74 @@ func main() {
 
 	URL := getEnvVar("SEELF_URL")
 	TOKEN :=getEnvVar("SEELF_TOKEN")
-	APP_ID := getEnvVar("SEELF_APP_ID")
 	ENVIRONMENT := getEnvVar("APP_ENVIRONMENT")
-	BRANCH := getEnvVar("APP_BRANCH")
 	ABLY := getEnvVar("ABLY_TOKEN")
 
-	// Connect to Ably with your API key
-	client, err := ably.NewRealtime(ably.WithKey(ABLY), ably.WithAutoConnect(false))
+	c, err  := client.NewRealAblyClient(ABLY)
 	if err != nil {
 		panic(err)
 	}
-	client.Connection.OnAll(func(change ably.ConnectionStateChange) {
-		fmt.Printf("Connection event: %s state=%s reason=%s\n", change.Event, change.Current, change.Reason)
-	})
-	client.Connect()
 
-	// Create a channel called 'get-started' and register a listener to subscribe to all messages with the name 'first'
-	channel := client.Channels.Get("autodeploy")
-	_, err = channel.Subscribe(context.Background(), "helloworld", func(msg *ably.Message) {
-		fmt.Printf("Received message : %v\n", msg.Data)
+	ctx:=context.Background()
+	err = c.Subscribe(ctx,"autodeploy",func(msg *ably.Message) {
+		// msg.name - name
+		// msg.data - branch		
+		log.Printf("Received message : %v\n", msg)
 
-		// Create deployment
-		deployResponse, err := deployment.CreateDeployment(URL, TOKEN, APP_ID, ENVIRONMENT, BRANCH, "")
-		if err != nil {
-			log.Fatalf("Failed to create deployment: %v", err)
+		p:=availableProject(msg.Name,d)
+
+		if (p.Name=="") {
+			log.Printf("Project not found - %s", msg.Name)
+			return
 		}
 
-		fmt.Printf("Deployment #%d created, waiting for it to complete...\n", deployResponse.DeploymentNumber)
+		branch, ok := msg.Data.(string); if !ok{
+			log.Printf("Failure in converting msg.data %v", err)
+			return
+		}
 
-		// Wait for deployment to complete
-		err = deployment.WaitForDeployment(URL, TOKEN, APP_ID, deployResponse.DeploymentNumber)
+		deployResponse, err := deployment.CreateDeployment(URL, TOKEN, p.SeelfKey, ENVIRONMENT, branch, "")
 		if err != nil {
-			log.Fatalf("Deployment failed: %v", err)
+			log.Printf("Failed to create deployment: %v", err)
+		}
+
+		log.Printf("Deployment #%d created, waiting for it to complete...\n", deployResponse.DeploymentNumber)
+
+		err = deployment.WaitForDeployment(URL, TOKEN,  p.SeelfKey, deployResponse.DeploymentNumber)
+		if err != nil {
+			log.Printf("Deployment failed: %v", err)
 		}
 	})
+
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Subscrition starts")
+	log.Println("Subscription starts")
 
 	for {
 	}
+}
+
+func availableProject(name string, d *pkg.Deployment) pkg.Project {
+	for _, project:= range d.Deployments.Projects {
+		if project.Name == name {
+			return project
+		}
+	}
+	return pkg.Project{}
+}
+
+func loadConfigs() *pkg.Deployment {
+	// Read the file
+	fileData, err := ioutil.ReadFile("deployment.yaml")
+	if err != nil {
+		return nil
+	}
+	result, err := pkg.ParseConfigs([]byte(fileData))
+	if err != nil {
+		log.Fatalf("error: %v", err)
+		os.Exit(1)
+	}
+
+	return result
 }

@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	github.com/ably/ably-go v1.2.21
 	github.com/joho/godotenv v1.5.1
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 require (

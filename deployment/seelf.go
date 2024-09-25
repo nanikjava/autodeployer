@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 )
@@ -69,7 +70,7 @@ func WaitForDeployment(url, token, appID string, deploymentNumber int) error {
 		if deploymentResponse.State.Status == 2 {
 			return fmt.Errorf("deployment failed: %s", deploymentResponse.State.ErrorCode)
 		} else if deploymentResponse.State.Status == 3 {
-			fmt.Println("Deployment succeeded!")
+			log.Println("Deployment succeeded!")
 			for _, service := range deploymentResponse.State.Services {
 				for _, entrypoint := range service.Entrypoints {
 					if !entrypoint.IsCustom {
