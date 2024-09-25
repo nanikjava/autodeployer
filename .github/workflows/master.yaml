@@ -1,0 +1,17 @@
+name: Push to master
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        curl -X POST -u "$ABLY_KEY" -H 'Content-Type: application/json' --data '{"name": "autodeployer", "data": "master"}' https://rest.ably.io/channels/autodeploy/messages  
+      shell: bash
+      env:
+        ABLY_KEY: ${{secrets.ABLY}}      
+
