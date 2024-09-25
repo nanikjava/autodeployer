@@ -1,0 +1,5 @@
+deployments:
+  projects: 
+    - name: simpleserver
+      seelf_key: 2mYlyWuUQUXQzqFXf2E8RJepFHr
+      github_url: "https://github.com/nanikjava/simpleserver"
