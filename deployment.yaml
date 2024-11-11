@@ -1,8 +1,8 @@
 deployments:
   projects: 
     - name: simpleserver
-      seelf_key: 2mYlyWuUQUXQzqFXf2E8RJepFHr
+      seelf_key: 2ohidE8dI7kHcJqbpoWtnG7RMzP
       github_url: "https://github.com/nanikjava/simpleserver"
     - name: autodeployer
       seelf_key: 2m6GHtlIVT3aWX2MfVzed2fGSN8
-      github_url: "https://github.com/nanikjava/simpleserver"      
+      github_url: "https://github.com/nanikjava/autodeployer"
