@@ -16,11 +16,11 @@ import (
 )
 
 func getEnvVar(key string) string {
-    value := os.Getenv(key)
-    if value == "" {
-        log.Fatalf("Error: Environment variable %s not set", key)
-    }
-    return value
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("Error: Environment variable %s not set", key)
+	}
+	return value
 }
 
 func main() {
@@ -29,33 +29,34 @@ func main() {
 
 	err := godotenv.Load()
 	if err != nil {
-        log.Println("Error loading .env file, continuing with system environment variables")
+		log.Println("Error loading .env file, continuing with system environment variables")
 	}
 
 	URL := getEnvVar("SEELF_URL")
-	TOKEN :=getEnvVar("SEELF_TOKEN")
+	TOKEN := getEnvVar("SEELF_TOKEN")
 	ENVIRONMENT := getEnvVar("APP_ENVIRONMENT")
 	ABLY := getEnvVar("ABLY_TOKEN")
 
-	c, err  := client.NewRealAblyClient(ABLY)
+	c, err := client.NewRealAblyClient(ABLY)
 	if err != nil {
 		panic(err)
 	}
 
-	ctx:=context.Background()
-	err = c.Subscribe(ctx,"autodeploy",func(msg *ably.Message) {
+	ctx := context.Background()
+	err = c.Subscribe(ctx, "autodeploy", func(msg *ably.Message) {
 		// msg.name - name
-		// msg.data - branch		
+		// msg.data - branch
 		log.Printf("Received message : %v\n", msg)
 
-		p:=availableProject(msg.Name,d)
+		p := availableProject(msg.Name, d)
 
-		if (p.Name=="") {
+		if p.Name == "" {
 			log.Printf("Project not found - %s", msg.Name)
 			return
 		}
 
-		branch, ok := msg.Data.(string); if !ok{
+		branch, ok := msg.Data.(string)
+		if !ok {
 			log.Printf("Failure in converting msg.data %v", err)
 			return
 		}
@@ -65,9 +66,11 @@ func main() {
 			log.Printf("Failed to create deployment: %v", err)
 		}
 
+		log.Printf("deployResponse: %v", deployResponse)
+
 		log.Printf("Deployment #%d created, waiting for it to complete...\n", deployResponse.DeploymentNumber)
 
-		err = deployment.WaitForDeployment(URL, TOKEN,  p.SeelfKey, deployResponse.DeploymentNumber)
+		err = deployment.WaitForDeployment(URL, TOKEN, p.SeelfKey, deployResponse.DeploymentNumber)
 		if err != nil {
 			log.Printf("Deployment failed: %v", err)
 		}
@@ -83,7 +86,7 @@ func main() {
 }
 
 func availableProject(name string, d *pkg.Deployment) pkg.Project {
-	for _, project:= range d.Deployments.Projects {
+	for _, project := range d.Deployments.Projects {
 		if project.Name == name {
 			return project
 		}
